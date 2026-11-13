@@ -76,3 +76,6 @@ node_modules/
 npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# ===== 本地计划/草稿 =====
+PROJECT_PLAN.md
