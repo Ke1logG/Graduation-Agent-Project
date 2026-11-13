@@ -77,5 +77,6 @@ npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ===== 本地计划/草稿 =====
+# ===== 本地计划/草稿与 Claude 配置 =====
 PROJECT_PLAN.md
+CLAUDE.md
