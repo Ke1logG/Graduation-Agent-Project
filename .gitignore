@@ -1,0 +1,78 @@
+# ===== 构建产物 =====
+HELP.md
+target/
+build/
+out/
+bin/
+*.class
+
+# Maven wrapper（仅保留 properties，jar 可由脚本自动下载）
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ===== 数据与数据库（必须提交，勿删） =====
+# data/ 下的清洗数据、脚本、报告，以及 db/ 下的 schema.sql 都需要纳入版本控制
+!data/**
+!db/**
+
+# ===== IDE / 编辑器 =====
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse / STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+# ===== 操作系统 =====
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ===== 日志 =====
+*.log
+logs/
+
+# ===== 本地配置与密钥 =====
+# 不要提交 API Key、数据库密码等敏感信息
+.env
+.env.*
+!.env.example
+application-local.*
+application-secret.*
+*.pem
+*.key
+
+# ===== Python（data/data-clean.py 等） =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# ===== Node（如有前端工具） =====
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*

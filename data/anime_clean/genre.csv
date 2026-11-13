@@ -1,0 +1,77 @@
+genre_id,category,name
+1,Genre,Action
+2,Genre,Comedy
+3,Genre,Sci-Fi
+4,Theme,Gag Humor
+5,Theme,Historical
+6,Theme,Parody
+7,Theme,Samurai
+8,Demographic,Shounen
+9,Genre,Fantasy
+10,Theme,Gore
+11,Theme,Urban Fantasy
+12,Genre,Adventure
+13,Genre,Drama
+14,Genre,Suspense
+15,Theme,Military
+16,Theme,Survival
+17,Genre,Supernatural
+18,Genre,Romance
+19,Demographic,Seinen
+20,Genre,Mystery
+21,Theme,Medical
+22,Genre,Award Winning
+23,Theme,Mecha
+24,Theme,Super Power
+25,Theme,Adult Cast
+26,Theme,Space
+27,Theme,Time Travel
+28,Theme,Psychological
+29,Theme,School
+30,Theme,Childcare
+31,Theme,Strategy Game
+32,Demographic,Shoujo
+33,Genre,Sports
+34,Theme,CGDCT
+35,Theme,Music
+36,Genre,Slice of Life
+37,Theme,Iyashikei
+38,Theme,Performing Arts
+39,Theme,Team Sports
+40,Theme,Delinquents
+41,Theme,Workplace
+42,Theme,Mythology
+43,Theme,Reincarnation
+44,Theme,Love Polygon
+45,Demographic,Josei
+46,Theme,Isekai
+47,Theme,Anthropomorphic
+48,Theme,Racing
+49,Theme,Organized Crime
+50,Genre,Ecchi
+51,Genre,Horror
+52,Genre,Gourmet
+53,Theme,Detective
+54,Theme,Vampire
+55,Theme,Martial Arts
+56,Theme,Showbiz
+57,Genre,Avant Garde
+58,Theme,Mahou Shoujo
+59,Genre,Boys Love
+60,Theme,Harem
+61,Theme,Otaku Culture
+62,Theme,Love Status Quo
+63,Theme,Visual Arts
+64,Theme,Crossdressing
+65,Theme,Idols (Male)
+66,Demographic,Kids
+67,Theme,High Stakes Game
+68,Theme,Idols (Female)
+69,Theme,Combat Sports
+70,Theme,Reverse Harem
+71,Theme,Magical Sex Shift
+72,Theme,Educational
+73,Theme,Video Game
+74,Genre,Girls Love
+75,Theme,Pets
+76,Theme,Villainess
