@@ -1,6 +1,6 @@
 # Anime 数据集清洗报告
 
-> 由 `preprocess.py` 自动生成，请勿手工编辑。
+> 由 `data/data-clean.py` 自动生成，请勿手工编辑。
 
 ## 1. 概览
 
@@ -70,4 +70,4 @@
 - `anime_genre.csv`
 - `studio.csv`
 - `anime_studio.csv`
-- `schema.sql`
+- `quality_report.md`

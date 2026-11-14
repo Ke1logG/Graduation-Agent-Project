@@ -1,3 +1,33 @@
 spring:
   application:
     name: Graduation-Agent-Project
+
+  # 数据库连接占位符：真实值放在本地 application-dev.yaml（已 gitignore），
+  # 或通过环境变量 MYSQL_URL / MYSQL_USERNAME / MYSQL_PASSWORD 覆盖。
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/anime_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${MYSQL_USERNAME:replace-me}
+    password: ${MYSQL_PASSWORD:replace-me}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # 禁止 Spring Boot 自动执行 classpath 下的 schema.sql；
+  # 建表统一手动执行 db/schema.sql。
+  sql:
+    init:
+      mode: never
+
+  # LLM 连接占位符：真实 key 放在本地 application-dev.yaml 或环境变量中。
+  # 不要在提交到 Git 的配置里写真实密钥。
+  ai:
+    openai:
+      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+      api-key: ${OPENAI_API_KEY:replace-me}
+      chat:
+        options:
+          model: ${OPENAI_MODEL:deepseek-chat}
+          temperature: 0
+          max-tokens: 2048
+          timeout: 60s
+
+server:
+  port: 8080

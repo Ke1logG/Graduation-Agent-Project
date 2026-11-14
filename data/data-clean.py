@@ -1,32 +1,53 @@
 # -*- coding: utf-8 -*-
 """
 Anime 数据集预处理
+用法：
+    python data/data-clean.py --src <原始数据目录> [--out <输出目录>]
+
 原则：只修能证明是错的；缺失值一律留空，不猜、不补、不编。
 """
-import csv, os, io, sys, collections, re
+import argparse, csv, collections
+from pathlib import Path
 
-SRC = r"D:\Anime-dataset"
-OUT_TRY = r"D:\deepseek\anime_clean"
+BASE_DIR = Path(__file__).resolve().parent
+
+def parse_args():
+    p = argparse.ArgumentParser(description="Anime 数据集预处理（只清洗，不填补缺失值）")
+    p.add_argument(
+        "--src",
+        required=True,
+        type=Path,
+        help="原始数据目录，需包含 anime.csv、anime_genres.csv、entities.csv、anime_companies.csv",
+    )
+    p.add_argument(
+        "--out",
+        type=Path,
+        default=BASE_DIR / "anime_clean",
+        help="输出目录（默认 data/anime_clean）",
+    )
+    return p.parse_args()
+
+ARGS = parse_args()
+SRC = ARGS.src
+OUTDIR = ARGS.out
+
+if not SRC.is_dir():
+    raise SystemExit(f"原始数据目录不存在: {SRC}")
 
 def load(fn):
-    with open(os.path.join(SRC, fn), "r", encoding="utf-8-sig", newline="") as f:
+    path = SRC / fn
+    if not path.is_file():
+        raise SystemExit(f"缺少原始文件: {path}")
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
-# ---------- 输出目录（子目录可能被沙箱拒绝，回退到根目录+前缀） ----------
-prefix = ""
-outdir = OUT_TRY
-try:
-    os.makedirs(outdir, exist_ok=True)
-    probe = os.path.join(outdir, ".w")
-    open(probe, "w").close(); os.remove(probe)
-except Exception:
-    outdir = r"D:\deepseek"
-    prefix = "clean_"
-print(f"[out] -> {outdir}  prefix={prefix!r}")
+OUTDIR.mkdir(parents=True, exist_ok=True)
+print(f"[src] -> {SRC}")
+print(f"[out] -> {OUTDIR}")
 
 def write_csv(name, header, rows):
-    p = os.path.join(outdir, prefix + name)
-    with io.open(p, "w", encoding="utf-8", newline="") as f:
+    p = OUTDIR / name
+    with p.open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         w.writerow(header)
         w.writerows(rows)
@@ -146,7 +167,7 @@ n_anime = len(anime)
 
 M = []
 M.append("# Anime 数据集清洗报告\n")
-M.append("> 由 `preprocess.py` 自动生成，请勿手工编辑。\n")
+M.append("> 由 `data/data-clean.py` 自动生成，请勿手工编辑。\n")
 
 M.append("## 1. 概览\n")
 M.append("| 表 | 行数 |")
@@ -200,10 +221,11 @@ M.append("- 部分作品缺题材或公司信息，按相关字段筛选会静�
 M.append("- 数据仅含 MAL 评分排名前 10,000 的作品，评分下限为 6.05，不代表全量动画。")
 
 M.append("\n## 7. 输出文件\n")
-for fn in ("anime.csv", "genre.csv", "anime_genre.csv", "studio.csv", "anime_studio.csv", "schema.sql"):
+for fn in ("anime.csv", "genre.csv", "anime_genre.csv", "studio.csv", "anime_studio.csv"):
     M.append(f"- `{fn}`")
+M.append("- `quality_report.md`")
 
 md = "\n".join(M)
-with io.open(os.path.join(outdir, prefix + "quality_report.md"), "w", encoding="utf-8") as f:
+with (OUTDIR / "quality_report.md").open("w", encoding="utf-8") as f:
     f.write(md)
 print(f"\nwrote quality_report.md ({len(md)} chars)")
