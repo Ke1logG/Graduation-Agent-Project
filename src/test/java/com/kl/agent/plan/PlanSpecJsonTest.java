@@ -65,4 +65,20 @@ class PlanSpecJsonTest {
                 .contains("\"calculator\"")
                 .contains("\"expression\"");
     }
+
+    @Test
+    void parsesRecordedLlmResponse() throws Exception {
+        try (InputStream in = getClass().getResourceAsStream("/llm/plan-smoke-response.json")) {
+            assertThat(in).isNotNull();
+
+            PlanSpec plan = objectMapper.readValue(in, PlanSpec.class);
+
+            assertThat(plan.goal()).contains("Sousou no Frieren");
+            assertThat(plan.steps())
+                    .extracting(StepSpec::tool)
+                    .containsExactly("search_anime", "writer");
+            assertThat(plan.steps().get(1).args())
+                    .containsEntry("content", "$s1.items[0].score");
+        }
+    }
 }
