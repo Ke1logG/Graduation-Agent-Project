@@ -4,7 +4,19 @@
 
 项目目标是做一个领域无关的工作流引擎：LLM 只输出结构化计划，引擎负责校验、按 DAG 执行、持久化步骤状态、处理故障，并记录可追踪/可回放的数据。动漫检索工具包只是试验场。
 
-**当前状态：** Spring Boot 脚手架 + 清洗后的动漫数据 + 数据库脚本；工作流引擎、规划器、工具层和 Web API 尚未实现。
+**当前状态（2026-11-18）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec` 和 G1 LLM 冒烟测试。尚未实现 `PlanParser` / `PlanValidator`、8 个工具、执行器、持久化仓库和 Web API。
+
+### 当前进度
+
+| 模块 | 状态 |
+|---|---|
+| 数据清洗、导入与校验 | ✅ |
+| 数据库：5 张动漫表 + 6 张工作流表 | ✅ |
+| 依赖与数据库 / LLM 配置 | ✅ |
+| `PlanSpec` / `StepSpec` 与 JSON 解析 | ✅ |
+| G1：真实 LLM 返回可解析计划 | ✅ 2026-11-17 |
+| `PlanParser` / `PlanValidator` | ⏳ 下一步 |
+| 8 个工具、执行器、持久化、评测、Web | ⏳ |
 
 ## 技术栈
 
@@ -23,9 +35,17 @@ data/
   README.md             数据源、许可证、SHA-256、清洗说明
   quality_report.md     清洗质量报告
 db/
-  schema.sql            建库建表脚本（不含数据导入）
-  verify_import.sql     导入后只读校验脚本
-src/                    Spring Boot 源码
+  schema.sql            5 张动漫表的建库建表脚本（不含数据导入）
+  orchestration_schema.sql  6 张工作流编排表（可重复执行）
+  verify_import.sql     动漫数据导入后的只读校验脚本
+src/main/java/com/kl/agent/
+  plan/                 PlanSpec / StepSpec
+src/test/java/com/kl/agent/
+  plan/                 PlanSpec JSON 解析测试
+  llm/                  G1 冒烟测试
+src/test/resources/
+  plans/                合法计划夹具
+  llm/                  真实 LLM 响应 fixture
 pom.xml
 ```
 
@@ -98,6 +118,16 @@ python data/data-clean.py --src "D:/Anime-dataset" --out data/anime_clean
 
 > `db/schema.sql` 包含 `DROP TABLE IF EXISTS`，是**初始化脚本**。已有数据时重跑会清空 5 张表；应用启动时不要自动执行它。
 
+### 工作流编排表
+
+建表完成后即可执行 [db/orchestration_schema.sql](db/orchestration_schema.sql)，与 CSV 导入顺序无关：
+
+```sql
+SOURCE D:/Graduation-Agent-Project/db/orchestration_schema.sql;
+```
+
+这会新增 6 张表：`workflow_run`、`step_run`、`tool_invocation`、`llm_call`、`run_event`、`generated_report`。脚本使用 `CREATE TABLE IF NOT EXISTS`，不会清空已有数据；执行后共 **11 张表**。
+
 ## 4. 手动导入 CSV
 
 当前没有提供自动导入脚本，使用 Navicat 或 MySQL Workbench 的导入向导手动导入。**必须按以下顺序导入**，否则会违反外键约束：
@@ -135,11 +165,26 @@ SOURCE D:/Graduation-Agent-Project/db/verify_import.sql;
 项目使用系统 Maven；`.mvn/wrapper` 不完整，`mvnw` 尚不可用。
 
 ```bash
+# 常规测试（不会调用真实 LLM）
 mvn test
+
+# 只跑计划数据结构测试
+mvn -Dtest=PlanSpecJsonTest test
+
+# G1 冒烟测试：真实调用千问兼容接口，需要设置 ALI-API-KEY
+mvn -Dtest=LlmSmokeTest -Dllm.smoke=true test
+
 mvn spring-boot:run
 ```
 
-当前应用还没有业务接口，启动只验证 Spring Boot 上下文。后续配置数据库和 LLM 后会补充环境变量说明。
+当前应用还没有业务接口，启动只验证 Spring Boot 上下文。
+
+### 本地配置
+
+- 提交到 Git 的 `application.yaml` 只包含占位符。
+- 本地真实数据库和 LLM 配置放在 `application-dev.yaml`，该文件已 gitignore。
+- `application.yaml` 默认激活 `dev` profile；LLM key 使用环境变量 `ALI-API-KEY`。
+- 换机器时，需要自行创建本地的 `application-dev.yaml`，或通过环境变量覆盖数据库和 LLM 配置。
 
 ## 6. 数据使用限制
 
