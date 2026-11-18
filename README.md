@@ -2,7 +2,7 @@
 
 本科毕业设计项目：**340 — AI Tool-Orchestration Workflow Engine（Agent 工具编排引擎）**。
 
-项目目标是做一个领域无关的工作流引擎：LLM 只输出结构化计划，引擎负责校验、按 DAG 执行、持久化步骤状态、处理故障，并记录可追踪/可回放的数据。动漫检索工具包只是试验场。
+本项目旨在做一个适配多领域的具备故障处理与步骤追溯功能的工作流引擎（agent）：LLM 思考并选择，组合工具，输出结构性分步计划，引擎负责校验、按 DAG 执行、持久化步骤状态、处理故障，并记录可追踪/可回放的数据。本项目以动漫检索场景为主要示例。
 
 **当前状态（2026-11-18）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec` 和 G1 LLM 冒烟测试。尚未实现 `PlanParser` / `PlanValidator`、8 个工具、执行器、持久化仓库和 Web API。
 
@@ -176,6 +176,15 @@ mvn -Dtest=LlmSmokeTest -Dllm.smoke=true test
 
 mvn spring-boot:run
 ```
+
+> **Windows PowerShell 注意**：PowerShell 会把未加引号的 `-D` 参数在 `.` 或 `#` 处拆开。`-Dllm.smoke=true` 会被拆成 `-Dllm` 和 `.smoke=true`，Maven 报 `Unknown lifecycle phase ".smoke=true"`。带 `.` 或 `#` 的参数要加引号（或改用 Git Bash / cmd）：
+>
+> ```powershell
+> mvn -Dtest=LlmSmokeTest "-Dllm.smoke=true" test
+> mvn "-Dtest=SomeTestClass#someMethod" test
+> ```
+>
+> `LlmSmokeTest` 会加载完整 Spring 上下文，跑之前先启动 MySQL80 服务。
 
 当前应用还没有业务接口，启动只验证 Spring Boot 上下文。
 
