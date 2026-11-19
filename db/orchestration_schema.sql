@@ -15,6 +15,7 @@ USE anime_db;
 CREATE TABLE IF NOT EXISTS workflow_run (
   run_id              VARCHAR(36)     NOT NULL COMMENT '运行ID（UUID/ULID）',
   trace_id            VARCHAR(64)     NOT NULL COMMENT '全链路追踪ID',
+  parent_run_id       VARCHAR(36)     NULL     COMMENT '澄清来源的父运行ID',
   task_id             VARCHAR(64)     NULL     COMMENT '评测任务ID，演示运行可为空',
   task_group          VARCHAR(32)     NULL     COMMENT 'single/multi/clarify/infeasible',
   prompt              TEXT            NULL     COMMENT '用户原始任务描述',
@@ -38,10 +39,13 @@ CREATE TABLE IF NOT EXISTS workflow_run (
   finished_at         DATETIME(3)     NULL,
   PRIMARY KEY (run_id),
   KEY idx_run_trace (trace_id),
+  KEY idx_run_parent (parent_run_id),
   KEY idx_run_task (task_id),
   KEY idx_run_status (status),
   KEY idx_run_recovery (status, last_heartbeat_at),
-  KEY idx_run_created (created_at)
+  KEY idx_run_created (created_at),
+  CONSTRAINT fk_run_parent FOREIGN KEY (parent_run_id) REFERENCES workflow_run(run_id)
+    ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
   COMMENT='一次完整任务运行';
 
