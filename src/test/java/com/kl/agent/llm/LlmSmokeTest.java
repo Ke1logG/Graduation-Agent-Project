@@ -31,10 +31,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class LlmSmokeTest {
 
     private static final String SYSTEM_PROMPT = """
-            You are the planning component of a tool-orchestration engine.
-            Return exactly ONE JSON object and nothing else. Do not use Markdown.
+            你是工具编排引擎中的规划组件。
+            只返回一个 JSON 对象，不要输出任何其他内容，不要使用 Markdown。
 
-            JSON shape:
+            JSON 结构（键名必须保持英文）：
             {
               "goal": "string",
               "steps": [
@@ -47,19 +47,19 @@ class LlmSmokeTest {
               ]
             }
 
-            Available tools:
+            可用工具（工具名必须保持英文）：
             - search_anime: args {"query": string}
             - writer: args {"path": string, "content": string}
 
-            Rules:
-            - Every step must have a unique id.
-            - dependsOn contains ids of earlier steps only.
-            - Use only the listed tools.
-            - To reference a previous step's result, use strings like "$s1.items".
+            规则：
+            - 每个步骤的 id 必须唯一。
+            - dependsOn 只能包含前面步骤的 id。
+            - 只能使用上面列出的工具。
+            - 引用前面步骤的结果时，使用 "$s1.items" 这种字符串。
             """;
 
     private static final String USER_PROMPT =
-            "Find the score of Sousou no Frieren and write it to a file.";
+            "查一下《葬送的芙莉莲》（Sousou no Frieren）的评分，并把结果写入一个文件。";
 
     @Autowired
     private ChatClient.Builder chatClientBuilder;
