@@ -60,8 +60,25 @@ class PlanParserTest {
     }
 
     @Test
-    void rejectsMalformedJson() {
-        assertThatThrownBy(() -> parser.parse("{ \"goal\": \"broken\", \"steps\": ["))
+    void rejectsNullText() {
+        assertThatThrownBy(() -> parser.parse(null))
                 .isInstanceOf(PlanParseException.class);
+    }
+
+    @Test
+    void rejectsMalformedJson() {
+        // 花括号不完整：在 extractJson 阶段就被拒绝，不会走到 Jackson
+        assertThatThrownBy(() -> parser.parse("{ \"goal\": \"broken\", \"steps\": ["))
+                .isInstanceOf(PlanParseException.class)
+                .hasMessageContaining("响应中没有完整的 JSON 对象");
+    }
+
+    @Test
+    void wrapsJacksonErrorsAsParseException() {
+        // 花括号完整、能通过 extractJson；但 steps 元素不是对象，Jackson 反序列化失败，
+        // 用来覆盖 PlanParser 里包装 Jackson 异常的 catch 分支
+        assertThatThrownBy(() -> parser.parse("{\"goal\": \"x\", \"steps\": [123]}"))
+                .isInstanceOf(PlanParseException.class)
+                .hasMessageContaining("计划不是合法 JSON 或结构不匹配");
     }
 }
