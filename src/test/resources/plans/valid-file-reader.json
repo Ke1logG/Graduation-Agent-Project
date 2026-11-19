@@ -1,0 +1,11 @@
+{
+  "goal": "Read demo anime ids",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "file_reader",
+      "args": {"path": "data/demo/anime_ids.json"},
+      "dependsOn": []
+    }
+  ]
+}

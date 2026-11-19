@@ -1,0 +1,11 @@
+{
+  "goal": "Use an unknown tool",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "teleport",
+      "args": {},
+      "dependsOn": []
+    }
+  ]
+}

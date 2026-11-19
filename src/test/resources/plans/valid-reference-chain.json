@@ -1,0 +1,23 @@
+{
+  "goal": "Filter and write top results",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "search_anime",
+      "args": {"query": "Sousou no Frieren"},
+      "dependsOn": []
+    },
+    {
+      "id": "s2",
+      "tool": "filter_anime",
+      "args": {"minScore": 8.0, "type": "TV"},
+      "dependsOn": ["s1"]
+    },
+    {
+      "id": "s3",
+      "tool": "writer",
+      "args": {"path": "runs/top.json", "content": "$s2.items"},
+      "dependsOn": ["s2"]
+    }
+  ]
+}

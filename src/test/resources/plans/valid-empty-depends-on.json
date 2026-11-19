@@ -1,0 +1,11 @@
+{
+  "goal": "Get one anime detail",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "get_anime_detail",
+      "args": {"animeId": 1},
+      "dependsOn": []
+    }
+  ]
+}

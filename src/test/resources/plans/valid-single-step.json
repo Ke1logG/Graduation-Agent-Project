@@ -1,0 +1,11 @@
+{
+  "goal": "Calculate 1 + 2",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "calculator",
+      "args": {"expression": "1 + 2"},
+      "dependsOn": []
+    }
+  ]
+}

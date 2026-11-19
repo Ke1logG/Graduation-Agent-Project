@@ -1,0 +1,11 @@
+{
+  "goal": "Reference a missing step",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "writer",
+      "args": {"path": "out.json", "content": "$s9.items"},
+      "dependsOn": []
+    }
+  ]
+}

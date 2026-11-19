@@ -1,0 +1,13 @@
+```json
+{
+  "goal": "Calculate 2 + 3",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "calculator",
+      "args": {"expression": "2 + 3"},
+      "dependsOn": []
+    }
+  ]
+}
+```

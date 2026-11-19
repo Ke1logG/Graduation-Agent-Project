@@ -1,5 +1,6 @@
 package com.kl.agent.llm;
 
+import com.kl.agent.plan.PlanParser;
 import com.kl.agent.plan.PlanSpec;
 import com.kl.agent.plan.StepSpec;
 import org.junit.jupiter.api.Test;
@@ -88,7 +89,7 @@ class LlmSmokeTest {
         Files.createDirectories(output.getParent());
         Files.writeString(output, raw);
 
-        PlanSpec plan = objectMapper.readValue(extractJson(raw), PlanSpec.class);
+        PlanSpec plan = new PlanParser(objectMapper).parse(raw);
 
         assertThat(plan.goal()).isNotBlank();
         assertThat(plan.steps()).isNotEmpty();
@@ -108,30 +109,5 @@ class LlmSmokeTest {
                 usage.getCompletionTokens(),
                 output.toAbsolutePath()
         );
-    }
-
-    /**
-     * 容忍模型偶尔返回 Markdown 围栏或前后说明；只截取最外层 JSON。
-     */
-    private String extractJson(String raw) {
-        String text = raw.trim();
-
-        if (text.startsWith("```")) {
-            int firstLineEnd = text.indexOf('\n');
-            if (firstLineEnd >= 0) {
-                text = text.substring(firstLineEnd + 1);
-            }
-            int closing = text.lastIndexOf("```");
-            if (closing >= 0) {
-                text = text.substring(0, closing);
-            }
-        }
-
-        int start = text.indexOf('{');
-        int end = text.lastIndexOf('}');
-        if (start >= 0 && end > start) {
-            return text.substring(start, end + 1).trim();
-        }
-        return text.trim();
     }
 }

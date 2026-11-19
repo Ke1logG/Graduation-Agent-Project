@@ -1,0 +1,11 @@
+{
+  "goal": "Depend on a missing step",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "calculator",
+      "args": {"expression": "1 + 1"},
+      "dependsOn": ["s9"]
+    }
+  ]
+}

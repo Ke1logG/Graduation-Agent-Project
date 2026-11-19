@@ -1,0 +1,17 @@
+{
+  "goal": "Reference a step without declaring the dependency",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "search_anime",
+      "args": {"query": "Sousou no Frieren"},
+      "dependsOn": []
+    },
+    {
+      "id": "s2",
+      "tool": "writer",
+      "args": {"path": "out.json", "content": "$s1.items"},
+      "dependsOn": []
+    }
+  ]
+}

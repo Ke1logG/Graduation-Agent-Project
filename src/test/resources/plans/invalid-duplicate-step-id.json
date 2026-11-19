@@ -1,0 +1,17 @@
+{
+  "goal": "Duplicate step ids",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "calculator",
+      "args": {"expression": "1 + 1"},
+      "dependsOn": []
+    },
+    {
+      "id": "s1",
+      "tool": "calculator",
+      "args": {"expression": "2 + 2"},
+      "dependsOn": []
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 
 本项目旨在做一个适配多领域的具备故障处理与步骤追溯功能的工作流引擎（agent）：LLM 思考并选择，组合工具，输出结构性分步计划，引擎负责校验、按 DAG 执行、持久化步骤状态、处理故障，并记录可追踪/可回放的数据。本项目以动漫检索场景为主要示例。
 
-**当前状态（2026-11-18）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec` 和 G1 LLM 冒烟测试。尚未实现 `PlanParser` / `PlanValidator`、8 个工具、执行器、持久化仓库和 Web API。
+**当前状态（2026-11-19）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec`、G1 LLM 冒烟测试，以及 `PlanParser` / `PlanValidator`（L0–L2）。尚未实现 8 个工具、执行器、持久化仓库和 Web API。
 
 ### 当前进度
 
@@ -15,8 +15,9 @@
 | 依赖与数据库 / LLM 配置 | ✅ |
 | `PlanSpec` / `StepSpec` 与 JSON 解析 | ✅ |
 | G1：真实 LLM 返回可解析计划 | ✅ 2026-11-17 |
-| `PlanParser` / `PlanValidator` | ⏳ 下一步 |
-| 8 个工具、执行器、持久化、评测、Web | ⏳ |
+| `PlanParser` / `PlanValidator` L0–L2 + 20 个夹具 | ✅ 2026-11-19 |
+| `ScriptedPlanner` + 最小执行器 | ⏳ 下一步 |
+| 8 个工具、持久化、评测、Web | ⏳ |
 
 ## 技术栈
 
@@ -39,12 +40,13 @@ db/
   orchestration_schema.sql  6 张工作流编排表（可重复执行）
   verify_import.sql     动漫数据导入后的只读校验脚本
 src/main/java/com/kl/agent/
-  plan/                 PlanSpec / StepSpec
+  plan/                 PlanSpec / StepSpec / PlanParser / PlanValidator
+  tool/                 ToolCatalog / ToolSchema
 src/test/java/com/kl/agent/
-  plan/                 PlanSpec JSON 解析测试
+  plan/                 解析与校验测试
   llm/                  G1 冒烟测试
 src/test/resources/
-  plans/                合法计划夹具
+  plans/                8 个合法 + 12 个非法计划夹具
   llm/                  真实 LLM 响应 fixture
 pom.xml
 ```
@@ -170,6 +172,9 @@ mvn test
 
 # 只跑计划数据结构测试
 mvn -Dtest=PlanSpecJsonTest test
+
+# 计划解析与校验测试（8 个合法 + 12 个非法夹具）
+mvn -Dtest=PlanParserTest,PlanValidatorTest test
 
 # G1 冒烟测试：真实调用千问兼容接口，需要设置 ALI-API-KEY
 mvn -Dtest=LlmSmokeTest -Dllm.smoke=true test

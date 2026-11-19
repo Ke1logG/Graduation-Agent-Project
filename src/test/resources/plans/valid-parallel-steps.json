@@ -1,0 +1,17 @@
+{
+  "goal": "Search two titles independently",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "search_anime",
+      "args": {"query": "Sousou no Frieren"},
+      "dependsOn": []
+    },
+    {
+      "id": "s2",
+      "tool": "search_anime",
+      "args": {"query": "Gintama"},
+      "dependsOn": []
+    }
+  ]
+}

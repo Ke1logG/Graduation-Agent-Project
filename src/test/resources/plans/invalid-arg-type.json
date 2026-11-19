@@ -1,0 +1,11 @@
+{
+  "goal": "Use a number where a string is expected",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "search_anime",
+      "args": {"query": 123},
+      "dependsOn": []
+    }
+  ]
+}

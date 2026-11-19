@@ -1,0 +1,11 @@
+{
+  "goal": "Write a file without content",
+  "steps": [
+    {
+      "id": "s1",
+      "tool": "writer",
+      "args": {"path": "out.json"},
+      "dependsOn": []
+    }
+  ]
+}
