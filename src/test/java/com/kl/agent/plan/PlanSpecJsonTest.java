@@ -19,7 +19,7 @@ class PlanSpecJsonTest {
 
     @Test
     void readsTwoStepPlanFromJson() throws Exception {
-        try (InputStream in = getClass().getResourceAsStream("/plans/valid-two-step.json")) {
+        try (InputStream in = getClass().getResourceAsStream("/plans/valid/two-step.json")) {
             assertThat(in).isNotNull();
 
             PlanSpec plan = objectMapper.readValue(in, PlanSpec.class);
@@ -68,7 +68,7 @@ class PlanSpecJsonTest {
 
     @Test
     void parsesRecordedLlmResponse() throws Exception {
-        try (InputStream in = getClass().getResourceAsStream("/llm/plan-smoke-response.json")) {
+        try (InputStream in = getClass().getResourceAsStream("/llm/recordings/g1-plan-response.json")) {
             assertThat(in).isNotNull();
 
             PlanSpec plan = objectMapper.readValue(in, PlanSpec.class);
