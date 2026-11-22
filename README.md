@@ -4,7 +4,7 @@
 
 本项目旨在做一个适配多领域的具备故障处理与步骤追溯功能的工作流引擎（agent）：LLM 思考并选择，组合工具，输出结构性分步计划，引擎负责校验、按 DAG 执行、持久化步骤状态、处理故障，并记录可追踪/可回放的数据。本项目以动漫检索场景为主要示例。
 
-**当前状态（2026-11-19）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec`、G1 LLM 冒烟测试，以及 `PlanParser` / `PlanValidator`（L0–L2）。尚未实现 8 个工具、执行器、持久化仓库和 Web API。
+**当前状态（2026-11-22）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec`、G1 LLM 冒烟测试，以及 `PlanParser` / `PlanValidator`（L0–L3）。尚未实现 8 个工具、执行器、持久化仓库和 Web API。
 
 ### 当前进度
 
@@ -15,7 +15,7 @@
 | 依赖与数据库 / LLM 配置 | ✅ |
 | `PlanSpec` / `StepSpec` 与 JSON 解析 | ✅ |
 | G1：真实 LLM 返回可解析计划 | ✅ 2026-11-17 |
-| `PlanParser` / `PlanValidator` L0–L2 + 20 个夹具 | ✅ 2026-11-19 |
+| `PlanParser` / `PlanValidator` L0–L3 + 20 个夹具 | ✅ 2026-11-22 |
 | `ScriptedPlanner` + 最小执行器 | ⏳ 下一步 |
 | 8 个工具、持久化、评测、Web | ⏳ |
 

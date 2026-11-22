@@ -18,23 +18,33 @@ import com.kl.agent.tool.ToolCatalog;
 import com.kl.agent.tool.ToolSchema;
 
 /**
- * 计划校验器，当前覆盖 L1（工具/参数）和 L2（DAG/引用）。
+ * 计划校验器：L1（工具/参数）、L2（DAG/引用）、L3（执行前策略）。
  *
- * <p>L3 的预算、排序字段白名单和文件路径白名单在执行器阶段补充。</p>
+ * <p>L3 当前覆盖步骤上限、文件路径白名单和排序字段白名单；token/金额预算在接真实 LLM 时再补。</p>
  */
 public final class PlanValidator {
 
     private static final Pattern STEP_REFERENCE =
             Pattern.compile("\\$([A-Za-z_][A-Za-z0-9_]*)\\.");
 
-    
     /**
      * 工具表依赖注入
      */
     private final ToolCatalog toolCatalog;
 
+    /**
+     * 执行前策略：步骤上限、路径前缀、排序字段白名单。
+     */
+    private final ValidationPolicy policy;
+
+    //引用默认模板配置
     public PlanValidator(ToolCatalog toolCatalog) {
+        this(toolCatalog, ValidationPolicy.defaults());
+    }
+
+    public PlanValidator(ToolCatalog toolCatalog, ValidationPolicy policy) {
         this.toolCatalog = Objects.requireNonNull(toolCatalog, "toolCatalog");
+        this.policy = Objects.requireNonNull(policy, "policy");
     }
 
     /**
@@ -58,20 +68,27 @@ public final class PlanValidator {
             return new ValidationResult(errors);
         }
 
+        // L3：先检查整体规模，避免把超长计划送入后续校验和执行
+        if (plan.steps().size() > policy.maxSteps()) {
+            add(errors, PlanErrorCode.TOO_MANY_STEPS, null,
+                    "步骤数超过上限: " + plan.steps().size() + " > " + policy.maxSteps());
+        }
+
         /**
-         * 整体的校验链条：基础-L1-L2，组合调用类内部的校验方法完成完整校验
+         * 整体的校验链条：基础-L1-L2-L3，组合调用类内部的校验方法完成完整校验
          */
 
         //调用方法拿到步骤映射哈希表
         Map<String, StepSpec> stepsById = collectSteps(plan.steps(), errors);
 
-        //遍历每一个步骤，进行工具，参数，依赖的详细校验，如果遇到空步骤或空步骤id就跳过，防止空指针异常
+        //遍历每一个步骤，进行工具，参数，依赖及L3额外政策的详细校验，如果遇到空步骤或空步骤id就跳过，防止空指针异常
         for (StepSpec step : plan.steps()) {
             if (step == null || isBlank(step.id())) {
                 continue;
             }
             validateToolAndArgs(step, errors);
             validateDependencies(step, stepsById, errors);
+            validateExecutionPolicy(step, errors);
         }
 
         //进行环校验和上游结果依赖校验
@@ -189,6 +206,63 @@ public final class PlanValidator {
                 add(errors, PlanErrorCode.UNKNOWN_DEPENDENCY, step.id(),
                         "依赖的步骤不存在: " + dependency);
             }
+        }
+    }
+
+    /**
+     * L3：文件路径白名单和排序字段白名单。
+     */
+    private void validateExecutionPolicy(StepSpec step, List<PlanError> errors) {
+        //检查参数，如果没有参数直接返回
+        Map<String, Object> args = step.args();
+        if (args == null) {
+            return;
+        }
+
+        //校验path参数类型为字符串，如果是字符串，交给validatePath方法进一步检查（之前L1校验过参数类型，所以不是字符串这里也不报错，避免重复）
+        Object pathValue = args.get("path");
+        if (pathValue instanceof String path) {
+            validatePath(step, path, errors);
+        }
+
+        //校验rank_anime工具的sortBy字段，如果是字符串且白名单里不包含，就加入错误集
+        if ("rank_anime".equals(step.tool())) {
+            Object sortValue = args.get("sortBy");
+            if (sortValue instanceof String sortBy
+                    && !policy.allowedSortFields().contains(sortBy)) {
+                add(errors, PlanErrorCode.INVALID_SORT_FIELD, step.id(),
+                        "不允许的排序字段: " + sortBy);
+            }
+        }
+    }
+
+    /**
+     * 校验路径必须是相对路径、不能包含 ..、且落在允许的前缀（白名单）内。
+     */
+    private void validatePath(StepSpec step, String path, List<PlanError> errors) {
+        String normalized = path.trim().replace('\\', '/');
+
+        if (normalized.isEmpty()
+                || normalized.startsWith("/")
+                || normalized.matches("^[A-Za-z]:.*")) {
+            add(errors, PlanErrorCode.UNSAFE_PATH, step.id(),
+                    "路径必须是白名单内的相对路径: " + path);
+            return;
+        }
+
+        for (String segment : normalized.split("/")) {
+            if ("..".equals(segment)) {
+                add(errors, PlanErrorCode.UNSAFE_PATH, step.id(),
+                        "路径不能包含 ..: " + path);
+                return;
+            }
+        }
+
+        boolean allowed = policy.allowedPathPrefixes().stream()
+                .anyMatch(normalized::startsWith);
+        if (!allowed) {
+            add(errors, PlanErrorCode.UNSAFE_PATH, step.id(),
+                    "路径不在允许范围内: " + path);
         }
     }
 
