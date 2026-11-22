@@ -20,6 +20,8 @@ import com.kl.agent.tool.ToolSchema;
 /**
  * 计划校验器：L1（工具/参数）、L2（DAG/引用）、L3（执行前策略）。
  *
+ * <p>方法按层分组：基础检查 → L1 → L2 → L3 → 公共小工具。</p>
+ *
  * <p>L3 当前覆盖步骤上限、文件路径白名单和排序字段白名单；token/金额预算在接真实 LLM 时再补。</p>
  */
 public final class PlanValidator {
@@ -74,9 +76,7 @@ public final class PlanValidator {
                     "步骤数超过上限: " + plan.steps().size() + " > " + policy.maxSteps());
         }
 
-        /**
-         * 整体的校验链条：基础-L1-L2-L3，组合调用类内部的校验方法完成完整校验
-         */
+        // 校验链：基础检查 → L1 → L2 → L3，所有错误一次性收集后返回
 
         //调用方法拿到步骤映射哈希表
         Map<String, StepSpec> stepsById = collectSteps(plan.steps(), errors);
@@ -99,28 +99,7 @@ public final class PlanValidator {
         return new ValidationResult(errors);
     }
 
-    /**
-     * 建立 stepId -> StepSpec 索引，同时检查空步骤、空 id 和重复 id。
-     */
-    private Map<String, StepSpec> collectSteps(List<StepSpec> steps, List<PlanError> errors) {
-        Map<String, StepSpec> byId = new LinkedHashMap<>();
-        for (StepSpec step : steps) {
-            if (step == null) {
-                add(errors, PlanErrorCode.INVALID_STEP, null, "存在空步骤");
-                continue;
-            }
-            if (isBlank(step.id())) {
-                add(errors, PlanErrorCode.INVALID_STEP, null, "步骤 id 不能为空");
-                continue;
-            }
-            //如果id不重复，就放入表中，如果重复了，就加入一条错误
-            if (byId.putIfAbsent(step.id(), step) != null) {
-                add(errors, PlanErrorCode.DUPLICATE_STEP_ID, step.id(),
-                        "步骤 id 重复: " + step.id());
-            }
-        }
-        return byId;
-    }
+    // ==================== L1：工具与参数 ====================
 
     /**
      * L1：工具存在、必填参数、未知参数、顶层类型校验。
@@ -182,6 +161,31 @@ public final class PlanValidator {
         }
     }
 
+    // ==================== L2：DAG 与引用 ====================
+
+    /**
+     * 建立 stepId -> StepSpec 索引，同时检查空步骤、空 id 和重复 id。
+     */
+    private Map<String, StepSpec> collectSteps(List<StepSpec> steps, List<PlanError> errors) {
+        Map<String, StepSpec> byId = new LinkedHashMap<>();
+        for (StepSpec step : steps) {
+            if (step == null) {
+                add(errors, PlanErrorCode.INVALID_STEP, null, "存在空步骤");
+                continue;
+            }
+            if (isBlank(step.id())) {
+                add(errors, PlanErrorCode.INVALID_STEP, null, "步骤 id 不能为空");
+                continue;
+            }
+            //如果id不重复，就放入表中，如果重复了，就加入一条错误
+            if (byId.putIfAbsent(step.id(), step) != null) {
+                add(errors, PlanErrorCode.DUPLICATE_STEP_ID, step.id(),
+                        "步骤 id 重复: " + step.id());
+            }
+        }
+        return byId;
+    }
+
     /**
      * L2：依赖列表类型、依赖存在、自依赖。
      */
@@ -206,63 +210,6 @@ public final class PlanValidator {
                 add(errors, PlanErrorCode.UNKNOWN_DEPENDENCY, step.id(),
                         "依赖的步骤不存在: " + dependency);
             }
-        }
-    }
-
-    /**
-     * L3：文件路径白名单和排序字段白名单。
-     */
-    private void validateExecutionPolicy(StepSpec step, List<PlanError> errors) {
-        //检查参数，如果没有参数直接返回
-        Map<String, Object> args = step.args();
-        if (args == null) {
-            return;
-        }
-
-        //校验path参数类型为字符串，如果是字符串，交给validatePath方法进一步检查（之前L1校验过参数类型，所以不是字符串这里也不报错，避免重复）
-        Object pathValue = args.get("path");
-        if (pathValue instanceof String path) {
-            validatePath(step, path, errors);
-        }
-
-        //校验rank_anime工具的sortBy字段，如果是字符串且白名单里不包含，就加入错误集
-        if ("rank_anime".equals(step.tool())) {
-            Object sortValue = args.get("sortBy");
-            if (sortValue instanceof String sortBy
-                    && !policy.allowedSortFields().contains(sortBy)) {
-                add(errors, PlanErrorCode.INVALID_SORT_FIELD, step.id(),
-                        "不允许的排序字段: " + sortBy);
-            }
-        }
-    }
-
-    /**
-     * 校验路径必须是相对路径、不能包含 ..、且落在允许的前缀（白名单）内。
-     */
-    private void validatePath(StepSpec step, String path, List<PlanError> errors) {
-        String normalized = path.trim().replace('\\', '/');
-
-        if (normalized.isEmpty()
-                || normalized.startsWith("/")
-                || normalized.matches("^[A-Za-z]:.*")) {
-            add(errors, PlanErrorCode.UNSAFE_PATH, step.id(),
-                    "路径必须是白名单内的相对路径: " + path);
-            return;
-        }
-
-        for (String segment : normalized.split("/")) {
-            if ("..".equals(segment)) {
-                add(errors, PlanErrorCode.UNSAFE_PATH, step.id(),
-                        "路径不能包含 ..: " + path);
-                return;
-            }
-        }
-
-        boolean allowed = policy.allowedPathPrefixes().stream()
-                .anyMatch(normalized::startsWith);
-        if (!allowed) {
-            add(errors, PlanErrorCode.UNSAFE_PATH, step.id(),
-                    "路径不在允许范围内: " + path);
         }
     }
 
@@ -335,6 +282,7 @@ public final class PlanValidator {
             }
         }
     }
+
     /**
      * 剥洋葱式递归提取引用集合（引用有可能是用不同类型的集合装着，全部提取出来放到字符串集合并去重）
      */
@@ -358,6 +306,7 @@ public final class PlanValidator {
             }
         }
     }
+
     /**
      * 顺着依赖链追根溯源，确认被引用的步骤确实排在前面且已声明依赖
      */
@@ -394,6 +343,67 @@ public final class PlanValidator {
         }
         return false;
     }
+
+    // ==================== L3：执行前策略 ====================
+
+    /**
+     * L3：文件路径白名单和排序字段白名单。
+     */
+    private void validateExecutionPolicy(StepSpec step, List<PlanError> errors) {
+        //检查参数，如果没有参数直接返回
+        Map<String, Object> args = step.args();
+        if (args == null) {
+            return;
+        }
+
+        //校验path参数类型为字符串，如果是字符串，交给validatePath方法进一步检查（之前L1校验过参数类型，所以不是字符串这里也不报错，避免重复）
+        Object pathValue = args.get("path");
+        if (pathValue instanceof String path) {
+            validatePath(step, path, errors);
+        }
+
+        //校验rank_anime工具的sortBy字段，如果是字符串且白名单里不包含，就加入错误集
+        if ("rank_anime".equals(step.tool())) {
+            Object sortValue = args.get("sortBy");
+            if (sortValue instanceof String sortBy
+                    && !policy.allowedSortFields().contains(sortBy)) {
+                add(errors, PlanErrorCode.INVALID_SORT_FIELD, step.id(),
+                        "不允许的排序字段: " + sortBy);
+            }
+        }
+    }
+
+    /**
+     * 校验路径必须是相对路径、不能包含 ..、且落在允许的前缀（白名单）内。
+     */
+    private void validatePath(StepSpec step, String path, List<PlanError> errors) {
+        String normalized = path.trim().replace('\\', '/');
+
+        if (normalized.isEmpty()
+                || normalized.startsWith("/")
+                || normalized.matches("^[A-Za-z]:.*")) {
+            add(errors, PlanErrorCode.UNSAFE_PATH, step.id(),
+                    "路径必须是白名单内的相对路径: " + path);
+            return;
+        }
+
+        for (String segment : normalized.split("/")) {
+            if ("..".equals(segment)) {
+                add(errors, PlanErrorCode.UNSAFE_PATH, step.id(),
+                        "路径不能包含 ..: " + path);
+                return;
+            }
+        }
+
+        boolean allowed = policy.allowedPathPrefixes().stream()
+                .anyMatch(normalized::startsWith);
+        if (!allowed) {
+            add(errors, PlanErrorCode.UNSAFE_PATH, step.id(),
+                    "路径不在允许范围内: " + path);
+        }
+    }
+
+    // ==================== 公共小工具 ====================
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
