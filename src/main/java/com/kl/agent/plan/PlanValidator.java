@@ -1,8 +1,5 @@
 package com.kl.agent.plan;
 
-import com.kl.agent.tool.ToolCatalog;
-import com.kl.agent.tool.ToolSchema;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -17,6 +14,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.kl.agent.tool.ToolCatalog;
+import com.kl.agent.tool.ToolSchema;
+
 /**
  * 计划校验器，当前覆盖 L1（工具/参数）和 L2（DAG/引用）。
  *
@@ -27,12 +27,20 @@ public final class PlanValidator {
     private static final Pattern STEP_REFERENCE =
             Pattern.compile("\\$([A-Za-z_][A-Za-z0-9_]*)\\.");
 
+    
+    /**
+     * 工具表依赖注入
+     */
     private final ToolCatalog toolCatalog;
 
     public PlanValidator(ToolCatalog toolCatalog) {
         this.toolCatalog = Objects.requireNonNull(toolCatalog, "toolCatalog");
     }
 
+    /**
+     * 计划校验-计划非空，计划目标不为空，计划步骤不为空
+     * 其中计划为空，步骤列表为空直接返回，因为后续的校验需要，没有的话根本校验不了
+     */
     public ValidationResult validate(PlanSpec plan) {
         List<PlanError> errors = new ArrayList<>();
 
@@ -50,8 +58,14 @@ public final class PlanValidator {
             return new ValidationResult(errors);
         }
 
+        /**
+         * 整体的校验链条：基础-L1-L2，组合调用类内部的校验方法完成完整校验
+         */
+
+        //调用方法拿到步骤映射哈希表
         Map<String, StepSpec> stepsById = collectSteps(plan.steps(), errors);
 
+        //遍历每一个步骤，进行工具，参数，依赖的详细校验，如果遇到空步骤或空步骤id就跳过，防止空指针异常
         for (StepSpec step : plan.steps()) {
             if (step == null || isBlank(step.id())) {
                 continue;
@@ -60,9 +74,11 @@ public final class PlanValidator {
             validateDependencies(step, stepsById, errors);
         }
 
+        //进行环校验和上游结果依赖校验
         detectCycle(stepsById, errors);
         validateReferences(stepsById, errors);
 
+        //返回错误的结果集，一次性返回给大模型让他全部修改，避免一次只改一个错误
         return new ValidationResult(errors);
     }
 
@@ -80,6 +96,7 @@ public final class PlanValidator {
                 add(errors, PlanErrorCode.INVALID_STEP, null, "步骤 id 不能为空");
                 continue;
             }
+            //如果id不重复，就放入表中，如果重复了，就加入一条错误
             if (byId.putIfAbsent(step.id(), step) != null) {
                 add(errors, PlanErrorCode.DUPLICATE_STEP_ID, step.id(),
                         "步骤 id 重复: " + step.id());
@@ -89,14 +106,17 @@ public final class PlanValidator {
     }
 
     /**
-     * L1：工具存在、必填参数、未知参数、顶层类型。
+     * L1：工具存在、必填参数、未知参数、顶层类型校验。
      */
     private void validateToolAndArgs(StepSpec step, List<PlanError> errors) {
+
+        //校验工具不为空
         if (isBlank(step.tool())) {
             add(errors, PlanErrorCode.UNKNOWN_TOOL, step.id(), "tool 不能为空");
             return;
         }
 
+        //校验工具表中存在需要的工具，没找到工具就提前返回（Optional类型表示可能返回值，也可能返回null）
         Optional<ToolSchema> maybeSchema = toolCatalog.find(step.tool());
         if (maybeSchema.isEmpty()) {
             add(errors, PlanErrorCode.UNKNOWN_TOOL, step.id(),
@@ -104,9 +124,11 @@ public final class PlanValidator {
             return;
         }
 
+        //取出工具说明和参数
         ToolSchema schema = maybeSchema.get();
         Map<String, Object> args = step.args();
 
+        //如果说明书有必填参数且参数表为空，报错并直接返回
         if (args == null) {
             if (!schema.requiredArguments().isEmpty()) {
                 add(errors, PlanErrorCode.MISSING_ARG, step.id(), "args 不能为空");
@@ -114,6 +136,7 @@ public final class PlanValidator {
             return;
         }
 
+        //遍历必填参数，如果参数表里没有或者有但是值为null，添加错误
         for (String required : schema.requiredArguments()) {
             if (!args.containsKey(required) || args.get(required) == null) {
                 add(errors, PlanErrorCode.MISSING_ARG, step.id(),
@@ -121,6 +144,7 @@ public final class PlanValidator {
             }
         }
 
+        //遍历参数，取出名字后去规则表里查，如果查不到表示是未知参数，就加入错误表并跳过这个参数
         for (Map.Entry<String, Object> entry : args.entrySet()) {
             String name = entry.getKey();
             Class<?> expected = schema.argumentTypes().get(name);
@@ -130,6 +154,7 @@ public final class PlanValidator {
                 continue;
             }
 
+            //如果参数非空且参数类型不匹配，就加入错误集
             Object value = entry.getValue();
             if (value != null && !expected.isInstance(value)) {
                 add(errors, PlanErrorCode.INVALID_ARG_TYPE, step.id(),
@@ -145,12 +170,14 @@ public final class PlanValidator {
      */
     private void validateDependencies(StepSpec step, Map<String, StepSpec> stepsById,
                                       List<PlanError> errors) {
+        //校验依赖表非空
         if (step.dependsOn() == null) {
             add(errors, PlanErrorCode.INVALID_DEPENDENCIES, step.id(),
                     "dependsOn 必须是数组");
             return;
         }
 
+        //校验每个依赖没有空id，不依赖自身，依赖的步骤合法存在
         for (String dependency : step.dependsOn()) {
             if (isBlank(dependency)) {
                 add(errors, PlanErrorCode.UNKNOWN_DEPENDENCY, step.id(),
@@ -181,6 +208,7 @@ public final class PlanValidator {
     private boolean hasCycle(String id, Map<String, StepSpec> stepsById,
                              Map<String, VisitState> states) {
         VisitState state = states.get(id);
+        //如果访问到的时候状态是VISITING，代表有环
         if (state == VisitState.VISITING) {
             return true;
         }
@@ -188,6 +216,7 @@ public final class PlanValidator {
             return false;
         }
 
+        //标记当前id为VISITING，递归寻找它的依赖步骤
         states.put(id, VisitState.VISITING);
         StepSpec step = stepsById.get(id);
         if (step != null && step.dependsOn() != null) {
@@ -207,14 +236,17 @@ public final class PlanValidator {
      * L2：扫描 args 中的 "$sN.xxx" 引用，要求目标存在且是当前步骤的前置。
      */
     private void validateReferences(Map<String, StepSpec> stepsById, List<PlanError> errors) {
+        //遍历步骤，跳过空参数
         for (StepSpec step : stepsById.values()) {
             if (step.args() == null) {
                 continue;
             }
 
+            //调用方法提取引用集合
             Set<String> references = new HashSet<>();
             collectReferences(step.args(), references);
 
+            //遍历引用，校验不能引用自身，不能引用不存在步骤，不能未在前置依赖中声明
             for (String reference : references) {
                 if (reference.equals(step.id())) {
                     add(errors, PlanErrorCode.UNKNOWN_REFERENCE, step.id(),
@@ -229,7 +261,9 @@ public final class PlanValidator {
             }
         }
     }
-
+    /**
+     * 剥洋葱式递归提取引用集合（引用有可能是用不同类型的集合装着，全部提取出来放到字符串集合并去重）
+     */
     private void collectReferences(Object value, Set<String> references) {
         if (value instanceof String text) {
             Matcher matcher = STEP_REFERENCE.matcher(text);
@@ -250,7 +284,9 @@ public final class PlanValidator {
             }
         }
     }
-
+    /**
+     * 顺着依赖链追根溯源，确认被引用的步骤确实排在前面且已声明依赖
+     */
     private boolean isAncestor(String ancestor, String stepId, Map<String, StepSpec> stepsById) {
         StepSpec step = stepsById.get(stepId);
         if (step == null || step.dependsOn() == null) {
