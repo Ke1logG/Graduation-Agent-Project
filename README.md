@@ -4,7 +4,7 @@
 
 本项目旨在做一个适配多领域的具备故障处理与步骤追溯功能的工作流引擎（agent）：LLM 思考并选择，组合工具，输出结构性分步计划，引擎负责校验、按 DAG 执行、持久化步骤状态、处理故障，并记录可追踪/可回放的数据。本项目以动漫检索场景为主要示例。
 
-**当前状态（2026-11-22）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec`、G1 LLM 冒烟测试，以及 `PlanParser` / `PlanValidator`（L0–L3）。尚未实现 8 个工具、执行器、持久化仓库和 Web API。
+**当前状态（2026-11-23）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec`、G1 LLM 冒烟测试、`PlanParser` / `PlanValidator`（L0–L3）和 `ScriptedPlanner`。尚未实现 8 个工具、最小执行器、持久化仓库和 Web API。
 
 ### 当前进度
 
@@ -16,7 +16,8 @@
 | `PlanSpec` / `StepSpec` 与 JSON 解析 | ✅ |
 | G1：真实 LLM 返回可解析计划 | ✅ 2026-11-17 |
 | `PlanParser` / `PlanValidator` L0–L3 + 20 个夹具 | ✅ 2026-11-22 |
-| `ScriptedPlanner` + 最小执行器 | ⏳ 下一步 |
+| `ScriptedPlanner` | ✅ 2026-11-23 |
+| 最小顺序执行器 | ⏳ 下一步 |
 | 8 个工具、持久化、评测、Web | ⏳ |
 
 ## 技术栈
@@ -41,10 +42,11 @@ db/
   verify_import.sql     动漫数据导入后的只读校验脚本
 src/main/java/com/kl/agent/
   plan/                 PlanSpec / StepSpec / PlanParser / PlanValidator
+  llm/                  Planner / ScriptedPlanner
   tool/                 ToolCatalog / ToolSchema
 src/test/java/com/kl/agent/
   plan/                 解析与校验测试
-  llm/                  G1 冒烟测试
+  llm/                  G1 冒烟测试、ScriptedPlanner 测试
 src/test/resources/
   plans/                8 个合法 + 12 个非法计划夹具
   llm/                  真实 LLM 响应 fixture
@@ -175,6 +177,9 @@ mvn -Dtest=PlanSpecJsonTest test
 
 # 计划解析与校验测试（8 个合法 + 12 个非法夹具）
 mvn -Dtest=PlanParserTest,PlanValidatorTest test
+
+# 脚本化规划器测试
+mvn -Dtest=ScriptedPlannerTest test
 
 # G1 冒烟测试：真实调用千问兼容接口，需要设置 ALI-API-KEY
 mvn -Dtest=LlmSmokeTest -Dllm.smoke=true test
