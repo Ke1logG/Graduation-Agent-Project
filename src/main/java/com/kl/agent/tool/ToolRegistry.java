@@ -12,6 +12,7 @@ public final class ToolRegistry {
 
     private final Map<String, Tool> tools;
 
+    //工具登记：先校验合法后，把副本存到不可变的表中
     public ToolRegistry(Tool... tools) {
         Map<String, Tool> byName = new LinkedHashMap<>();
         for (Tool tool : tools) {
@@ -27,6 +28,7 @@ public final class ToolRegistry {
         this.tools = Map.copyOf(byName);
     }
 
+    //查找工具的方法，便于找到对应工具（Optional表示不一定存在，要调用方处理）
     public Optional<Tool> find(String name) {
         if (name == null) {
             return Optional.empty();
