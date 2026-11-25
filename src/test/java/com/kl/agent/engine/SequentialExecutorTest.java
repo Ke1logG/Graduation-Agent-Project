@@ -1,11 +1,15 @@
 package com.kl.agent.engine;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
+import com.kl.agent.plan.PlanParser;
 import com.kl.agent.plan.PlanSpec;
 import com.kl.agent.plan.StepSpec;
 import com.kl.agent.tool.FakeSearchTool;
@@ -124,6 +128,34 @@ class SequentialExecutorTest {
 
         assertThat(result.success()).isFalse();
         assertThat(result.errorMessage()).contains("没有步骤");
+    }
+
+    /**
+     * 测试6：真实两步计划中的 $s1.items 能被解析并传给 writer
+     */
+    @Test
+    void resolvesReferencesFromPreviousStep() {
+        FakeWriterTool writer = new FakeWriterTool();
+        SequentialExecutor executor = new SequentialExecutor(
+                new ToolRegistry(new FakeSearchTool(), writer));
+
+        PlanSpec plan = new PlanParser(new ObjectMapper()).parse(read("valid/two-step.json"));
+
+        ExecutionResult result = executor.execute(plan);
+
+        assertThat(result.success()).isTrue();
+        assertThat(writer.lastArgs().get("content")).isInstanceOf(List.class);
+        assertThat((List<?>) writer.lastArgs().get("content")).hasSize(1);
+    }
+
+    private String read(String fixture) {
+        String path = "/plans/" + fixture;
+        try (InputStream in = getClass().getResourceAsStream(path)) {
+            assertThat(in).as("resource: %s", path).isNotNull();
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to read " + path, e);
+        }
     }
 
     /**

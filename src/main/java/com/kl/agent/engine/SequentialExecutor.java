@@ -15,7 +15,7 @@ import com.kl.agent.tool.ToolRegistry;
  * 最小顺序执行器。
  *
  * <p>按计划声明顺序执行步骤；某一步失败时立即停止，不重试、不补偿、不持久化。
- * 参数中的 {@code $sN.xxx} 引用暂不解析，留到下一小步。</p>
+ * 参数中的 {@code $sN.xxx} 引用会在调用工具前解析成前置步骤的输出。</p>
  */
 public final class SequentialExecutor {
 
@@ -23,6 +23,11 @@ public final class SequentialExecutor {
      * 注入工具表
      */
     private final ToolRegistry toolRegistry;
+
+    /**
+     * 参数引用解析器，无状态，可复用。
+     */
+    private final ReferenceResolver referenceResolver = new ReferenceResolver();
 
     public SequentialExecutor(ToolRegistry toolRegistry) {
         this.toolRegistry = Objects.requireNonNull(toolRegistry, "toolRegistry");
@@ -47,8 +52,9 @@ public final class SequentialExecutor {
                         .orElseThrow(() -> new IllegalArgumentException(
                                 "工具不存在: " + step.tool()));
 
-                //拿到参数并调用工具执行
-                Map<String, Object> args = step.args() == null ? Map.of() : step.args();
+                //先把 $sN.xxx 引用解析成前置步骤输出，再调用工具
+                Map<String, Object> args =
+                        referenceResolver.resolveArgs(step.args(), outputs);
                 Object output = tool.execute(args);
 
                 //记录单步计划结果

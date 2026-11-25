@@ -4,7 +4,7 @@
 
 本项目旨在做一个适配多领域的具备故障处理与步骤追溯功能的工作流引擎（agent）：LLM 思考并选择，组合工具，输出结构性分步计划，引擎负责校验、按 DAG 执行、持久化步骤状态、处理故障，并记录可追踪/可回放的数据。本项目以动漫检索场景为主要示例。
 
-**当前状态（2026-11-24）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec`、G1 LLM 冒烟测试、`PlanParser` / `PlanValidator`（L0–L3）、`ScriptedPlanner`、`Tool` / `ToolRegistry`，以及最小顺序执行器（静态参数）。尚未实现引用解析、8 个真实工具、持久化仓库和 Web API。
+**当前状态（2026-11-25）：** P0 进行中。已完成依赖与配置、MySQL 数据导入与校验、11 张表（5 张动漫 + 6 张编排）、`PlanSpec` / `StepSpec`、G1 LLM 冒烟测试、`PlanParser` / `PlanValidator`（L0–L3）、`ScriptedPlanner`、`Tool` / `ToolRegistry`、最小顺序执行器，以及 `$sN` 引用解析。尚未实现 8 个真实工具、持久化仓库和 Web API。
 
 ### 当前进度
 
@@ -19,7 +19,8 @@
 | `ScriptedPlanner` | ✅ 2026-11-23 |
 | `Tool` / `ToolRegistry` 工具契约 | ✅ 2026-11-23 |
 | 最小顺序执行器（静态参数） | ✅ 2026-11-24 |
-| `$sN` 引用解析接入执行器 | ⏳ 下一步 |
+| `$sN` 引用解析接入执行器 | ✅ 2026-11-25 |
+| `LlmClient` / 真实规划器 | ⏳ 下一步 |
 | 8 个工具、持久化、评测、Web | ⏳ |
 
 ## 技术栈
@@ -46,7 +47,7 @@ src/main/java/com/kl/agent/
   plan/                 PlanSpec / StepSpec / PlanParser / PlanValidator
   llm/                  Planner / ScriptedPlanner
   tool/                 Tool / ToolRegistry / ToolCatalog / ToolSchema
-  engine/               SequentialExecutor / StepResult / ExecutionResult
+  engine/               SequentialExecutor / ReferenceResolver / StepResult / ExecutionResult
 src/test/java/com/kl/agent/
   plan/                 解析与校验测试
   llm/                  G1 冒烟测试、ScriptedPlanner 测试
@@ -191,6 +192,9 @@ mvn -Dtest=ToolRegistryTest test
 
 # 最小顺序执行器测试
 mvn -Dtest=SequentialExecutorTest test
+
+# 引用解析测试
+mvn -Dtest=ReferenceResolverTest test
 
 # G1 冒烟测试：真实调用千问兼容接口，需要设置 ALI-API-KEY
 mvn -Dtest=LlmSmokeTest -Dllm.smoke=true test
