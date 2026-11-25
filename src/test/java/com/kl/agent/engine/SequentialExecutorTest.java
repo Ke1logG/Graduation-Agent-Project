@@ -1,20 +1,23 @@
 package com.kl.agent.engine;
 
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+
 import com.kl.agent.plan.PlanSpec;
 import com.kl.agent.plan.StepSpec;
 import com.kl.agent.tool.FakeSearchTool;
 import com.kl.agent.tool.FakeWriterTool;
 import com.kl.agent.tool.Tool;
 import com.kl.agent.tool.ToolRegistry;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class SequentialExecutorTest {
 
+    /**
+     * 测试1：正向用例：按计划执行所有步骤
+     */
     @Test
     void executesStepsInPlanOrder() {
         FakeWriterTool writer = new FakeWriterTool();
@@ -40,6 +43,9 @@ class SequentialExecutorTest {
         assertThat(writer.lastArgs()).containsEntry("content", "hello");
     }
 
+    /**
+     * 测试2：测试中间某一步出错时立即停止，后续步骤不再执行
+     */
     @Test
     void stopsAtFirstFailure() {
         FakeWriterTool writer = new FakeWriterTool();
@@ -64,6 +70,9 @@ class SequentialExecutorTest {
         assertThat(writer.lastArgs()).isEmpty();
     }
 
+    /**
+     * 测试3：计划里用了注册表里不存在的工具，执行失败
+     */
     @Test
     void failsWhenToolIsMissing() {
         SequentialExecutor executor = new SequentialExecutor(new ToolRegistry());
@@ -78,6 +87,9 @@ class SequentialExecutorTest {
         assertThat(result.steps()).hasSize(1);
     }
 
+    /**
+     * 测试4：s1前置依赖未完成，执行失败
+     */
     @Test
     void failsWhenDependencyHasNotRun() {
         FakeWriterTool writer = new FakeWriterTool();
@@ -101,6 +113,9 @@ class SequentialExecutorTest {
         assertThat(writer.lastArgs()).isEmpty();
     }
 
+    /**
+     * 测试5：步骤为空时执行失败
+     */
     @Test
     void rejectsEmptyPlan() {
         SequentialExecutor executor = new SequentialExecutor(new ToolRegistry());
@@ -111,6 +126,9 @@ class SequentialExecutorTest {
         assertThat(result.errorMessage()).contains("没有步骤");
     }
 
+    /**
+     * 辅助方法，构造会出错的工具
+     */
     private Tool failingTool(String name) {
         return new Tool() {
             @Override

@@ -1,15 +1,15 @@
 package com.kl.agent.engine;
 
-import com.kl.agent.plan.PlanSpec;
-import com.kl.agent.plan.StepSpec;
-import com.kl.agent.tool.Tool;
-import com.kl.agent.tool.ToolRegistry;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import com.kl.agent.plan.PlanSpec;
+import com.kl.agent.plan.StepSpec;
+import com.kl.agent.tool.Tool;
+import com.kl.agent.tool.ToolRegistry;
 
 /**
  * 最小顺序执行器。
@@ -19,12 +19,18 @@ import java.util.Objects;
  */
 public final class SequentialExecutor {
 
+    /**
+     * 注入工具表
+     */
     private final ToolRegistry toolRegistry;
 
     public SequentialExecutor(ToolRegistry toolRegistry) {
         this.toolRegistry = Objects.requireNonNull(toolRegistry, "toolRegistry");
     }
 
+    /**
+     * 传入计划，不合法直接返回
+     */
     public ExecutionResult execute(PlanSpec plan) {
         if (plan == null || plan.steps() == null || plan.steps().isEmpty()) {
             return ExecutionResult.failure(List.of(), Map.of(), "计划为空或没有步骤");
@@ -33,6 +39,7 @@ public final class SequentialExecutor {
         Map<String, Object> outputs = new LinkedHashMap<>();
         List<StepResult> stepResults = new ArrayList<>();
 
+        //遍历步骤，校验步骤前置依赖完成，工具存在
         for (StepSpec step : plan.steps()) {
             try {
                 checkDependencies(step, outputs);
@@ -40,11 +47,14 @@ public final class SequentialExecutor {
                         .orElseThrow(() -> new IllegalArgumentException(
                                 "工具不存在: " + step.tool()));
 
+                //拿到参数并调用工具执行
                 Map<String, Object> args = step.args() == null ? Map.of() : step.args();
                 Object output = tool.execute(args);
 
+                //记录单步计划结果
                 outputs.put(step.id(), output);
                 stepResults.add(StepResult.success(step.id(), output));
+            //发现异常，记录异常信息并整体失败
             } catch (RuntimeException e) {
                 String message = e.getMessage() == null
                         ? e.getClass().getSimpleName()
@@ -54,6 +64,7 @@ public final class SequentialExecutor {
             }
         }
 
+        //返回封装好的整体执行结果
         return ExecutionResult.success(stepResults, outputs);
     }
 
