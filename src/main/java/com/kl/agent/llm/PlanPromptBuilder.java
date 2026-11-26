@@ -30,8 +30,9 @@ public final class PlanPromptBuilder {
               args: {"query": string}
               返回: {"items": [{"id": number, "title": string, "score": number}]}
             - writer: 把内容写入文件。
-              args: {"path": string, "content": string 或任意 JSON 值}
+              args: {"path": string, "content": string}
               path 必须以 "runs/" 或 "data/demo/" 开头。
+              content 可以写普通文本，也可以写 "$s1.items" 这种引用字符串；不要直接写 JSON 对象。
 
             规则：
             - goal 必须复述用户任务。

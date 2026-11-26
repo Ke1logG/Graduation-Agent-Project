@@ -18,6 +18,8 @@ class PlanPromptBuilderTest {
                 .contains("\"dependsOn\"")
                 .contains("search_anime")
                 .contains("writer")
+                .contains("\"path\": string, \"content\": string")
+                .contains("不要直接写 JSON 对象")
                 .contains("$s1.items")
                 .contains("runs/");
     }
