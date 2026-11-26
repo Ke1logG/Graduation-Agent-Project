@@ -52,7 +52,7 @@ src/main/java/com/kl/agent/
   engine/               SequentialExecutor / ReferenceResolver / StepResult / ExecutionResult
 src/test/java/com/kl/agent/
   plan/                 解析与校验测试
-  llm/                 传输层、规划层、G1/G2 冒烟测试
+  llm/                 传输层、规划层、真实 LLM 冒烟测试
   tool/                 工具注册表测试、Fake 工具
   engine/               顺序执行器测试
 src/test/resources/
@@ -206,6 +206,8 @@ mvn -Dtest=LlmSmokeTest -Dllm.smoke=true test
 
 mvn spring-boot:run
 ```
+
+真实冒烟会打印模型原始响应，并保存到 `target/llm-smoke/plan-response.json`。
 
 > **Windows PowerShell 注意**：PowerShell 会把未加引号的 `-D` 参数在 `.` 或 `#` 处拆开。`-Dllm.smoke=true` 会被拆成 `-Dllm` 和 `.smoke=true`，Maven 报 `Unknown lifecycle phase ".smoke=true"`。带 `.` 或 `#` 的参数要加引号（或改用 Git Bash / cmd）：
 >
